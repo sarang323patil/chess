@@ -2,7 +2,11 @@
 # Date - 16/09/2020
 
 import pygame
+from pygame import mixer
+from copy import copy, deepcopy
+
 pygame.init()
+mixer.init()
 
 gamePosition = [['bR', 'bP', 0, 0, 0, 0, 'wP', 'wR'],
                 ['bN', 'bP', 0, 0, 0, 0, 'wP', 'wN'],
@@ -84,7 +88,7 @@ class DrawChessBoard():
 
 def findLegalPath(gamePosition, x, y, peice):
     # Finds the legal path of the peice being draged 
-    print(peice)
+    # print(peice)
     listOfPath = set()
 
     # Pawn Movement
@@ -116,7 +120,7 @@ def findLegalPath(gamePosition, x, y, peice):
         for i in [-1, 1]:  # horizontal movement
             kx = x
             while True:
-                print(kx)
+                # print(kx)
                 kx = kx + i
                 if(kx<0 or kx>7):
                     break
@@ -204,63 +208,12 @@ def findLegalPath(gamePosition, x, y, peice):
 
 
     return listOfPath
-
-def Cloning(li1): 
-    li_copy = [] 
-    li_copy.extend(li1) 
-    return li_copy 
-
-def getBoardScore(gamePosition):
-    peiceScoreDict = {'wP':10, 'wN':20, 'wB':20, 'wR':30, 'wQ':50, 'wK':60, 'bP':-10, 'bN':-20, 'bB':-20, 'bR':-30, 'bQ':-50, 'bK':-60}
-    score = 0
-    for i in range(0, 8):
-        for j in range(0, 8):
-            if(gamePosition[i][j]!=0):
-                score += peiceScoreDict[gamePosition[i][j]]
-    return score
-
-
-
-
-run = True
-drag = False
-orignalX = None
-orignalY = None
-dragPeice = 0
-click = None
-legalPath = None
-turnCount=0
-peiceChance = ['w', 'b']
-whiteKingCastling = [1,1,1]  # left rook, king, right Rook  ((0,7), (4,7), (7,7))
-blackKingCastling = [1,1,1]
-while(run):
-
-    orignalX = -1
-    orignalY = -1
-    dragPeice = 0
-    legalPath = None
-
-    for event in pygame.event.get():
-        if(event.type == pygame.QUIT):
-            run = False
-        if(event.type == pygame.MOUSEBUTTONUP):
-            # print("CLICK")
-            click=True
-            orignalX, orignalY = pygame.mouse.get_pos()
-            
-   
     
-   
-    if(orignalX>=0 and orignalY>=0 and click==True):
-        orignalX/=80; orignalY/=80;
-        orignalX=int(orignalX); orignalY=int(orignalY); 
-        # print(orignalX, orignalY)
-        dragPeice = gamePosition[orignalX][orignalY]
 
-    
-    if(dragPeice!=0 and dragPeice[0]==peiceChance[turnCount%2]):
+def moveThePeice(gamePosition, orignalX, orignalY, dragPeice):
         # MOUSE is being clicked drag the peice which is being used
         drag = True
+        global turnCount 
         # FIND all Legal Path for the Peice
         legalPath = findLegalPath(gamePosition, orignalX, orignalY, dragPeice)
         
@@ -280,12 +233,14 @@ while(run):
             DrawChessBoard(gamePosition, True, x-40, y-40, dragPeice, legalPath)
        
 
-        print(dragPeice)
+        # print(dragPeice)
         if (finalX, finalY) in legalPath:
             # A Legal move is made
             # Place the peice on Legal Path
-            for pos in gamePosition:
-                print(pos)
+            mixer.music.load('D:\\software_dev\\game_dev\\chess\\sprites\\woodSound.mp3')
+            mixer.music.play()
+            """for pos in gamePosition:
+                                                    print(pos)"""
             gamePosition[finalX][finalY] = dragPeice
             turnCount += 1
             # check Catling Rights of white King
@@ -305,9 +260,11 @@ while(run):
                 whiteKingCastling[0]=0
 
         elif(dragPeice[1]=='K' and abs(finalX-orignalX)==2):
-            for pos in gamePosition:
-                print(pos)
+            """for pos in gamePosition:
+                                                    print(pos)"""
             # print('whiteKingCastling', whiteKingCastling)
+            mixer.music.load('D:\\software_dev\\game_dev\\chess\\sprites\\woodSound.mp3')
+            mixer.music.play()
             if(dragPeice[0]=='w' ):
                 turnCount+=1
                 whiteKingCastling[1]=0
@@ -336,11 +293,159 @@ while(run):
                     gamePosition[0][0]=0
                     gamePosition[4][0]=0
 
-
-
         else:
             # Place the peice back to its  orignal position
             gamePosition[orignalX][orignalY] = dragPeice
+
+def getBoardScore(gamePosition):
+    peiceScoreDict = {'wP':10, 'wN':20, 'wB':20, 'wR':30, 'wQ':50, 'wK':60, 'bP':-10, 'bN':-20, 'bB':-20, 'bR':-30, 'bQ':-50, 'bK':-60}
+    score = 0
+    for i in range(0, 8):
+        for j in range(0, 8):
+            if(gamePosition[i][j]!=0):
+                score += peiceScoreDict[gamePosition[i][j]]
+    return score
+
+def findPeicePos(gamePosition, col):
+    peicePos = []
+    for i in range(0, 8):
+        for j in range(0, 8):
+            if(gamePosition[i][j]!=0 and gamePosition[i][j][0]=='b'):
+                peicePos.append((i, j))
+    return peicePos
+
+
+def Cloning(li1): 
+    li_copy = [] 
+    li_copy.extend(li1) 
+    return li_copy 
+
+def isCheck(gamePos, col):
+    # check whether the King of color 'col' is in CHECK or not
+    
+    pass
+
+# AI for chess
+def negaMax(gamePosition, depth, col):
+    global AiGamePos
+
+    if(depth==0):
+        return getBoardScore(gamePosition)
+
+    if(col=='b'):
+        val = 9999999
+        peicePos = findPeicePos(gamePosition, 'b')
+        for px, py in peicePos:
+            peicePath = findLegalPath(gamePosition, px, py, gamePosition[px][py])
+            for nx, ny in peicePath:
+                newGamePos = gamePosition.clone()
+                if(nx!='L' and nx!='R'):
+                    newGamePos[nx][ny] = gamePosition[px][py]
+                    newGamePos[px][py] = 0
+                elif(nx=='L'):
+                    newGamePos[2][0]='bK'
+                    newGamePos[3][0]='bR'
+                    newGamePos[0][0]=0
+                    newGamePos[4][0]=0
+                else:
+                    newGamePos[6][0]='bK'
+                    newGamePos[5][0]='bR'
+                    newGamePos[4][0]=0
+                    newGamePos[7][0]=0
+
+                finas = newGamePos.clone()
+                temp = negaMax(finas, depth-1, 'w')
+                # print("Black --> ", temp)
+                if(temp<=val):
+                    val=temp
+                    AiGamePos = newGamePos.clone()
+        return val
+
+    if(col=='w'):
+        val = -9999999
+        peicePos = findPeicePos(gamePosition, 'w')
+        for px, py in peicePos:
+            peicePath = findLegalPath(gamePosition, px, py, gamePosition[px][py])
+            for nx, ny in peicePath:
+                newGamePos = gamePosition.clone()
+                if(nx!='L' and nx!='R'):
+                    newGamePos[nx][ny] = gamePosition[px][py]
+                    newGamePos[px][py] = 0
+                elif(nx=='L'):
+                    newGamePos[2][7]='wK'
+                    newGamePos[3][7]='wR'
+                    newGamePos[0][7]=0
+                    newGamePos[4][7]=0
+                else:
+                    newGamePos[6][7]='wK'
+                    newGamePos[5][7]='wR'
+                    newGamePos[4][7]=0
+                    newGamePos[7][7]=0
+
+                finas = newGamePos.clone()
+                temp = negaMax(finas, depth-1, 'b')
+                # print("run")
+                # print("white --> ", temp)
+                if(temp>=val):
+                    val=temp
+                    AiGamePos = newGamePos.clone()
+        return val
+
+
+run = True
+drag = False
+orignalX = None
+orignalY = None
+dragPeice = 0
+click = None
+legalPath = None
+turnCount=0
+peiceChance = ['w', 'b']
+whiteKingCastling = [1,1,1]  # left rook, king, right Rook  ((0,7), (4,7), (7,7))
+blackKingCastling = [1,1,1]
+AiGamePos = None
+while(run):
+
+    orignalX = -1
+    orignalY = -1
+    dragPeice = 0
+    legalPath = None
+    AiGamePos = None
+
+    for event in pygame.event.get():
+        if(event.type == pygame.QUIT):
+            run = False
+        if(event.type == pygame.MOUSEBUTTONUP):
+            # print("CLICK")
+            click=True
+            orignalX, orignalY = pygame.mouse.get_pos()
+            
+   
+    
+   
+    if(orignalX>=0 and orignalY>=0 and click==True):
+        orignalX/=80; orignalY/=80;
+        orignalX=int(orignalX); orignalY=int(orignalY); 
+        # print(orignalX, orignalY)
+        dragPeice = gamePosition[orignalX][orignalY]
+
+    
+    if(dragPeice!=0 and dragPeice[0]==peiceChance[turnCount%2] ):
+        moveThePeice(gamePosition, orignalX, orignalY, dragPeice)
+        print(turnCount)
+        
+    if(turnCount%2==1):
+        myPos = gamePosition.copy()
+        negaMax(myPos, 2, 'b')
+        gamePosition = AiGamePos
+        print(gamePosition)
+        print(turnCount, '/'*50);
+        turnCount+=1
+
+
+
+
+        
 
     DrawChessBoard(gamePosition, False)
 
