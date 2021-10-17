@@ -422,10 +422,4 @@ while(run):
         upClick=False
         downClick=False
     else:
-        drawBoard(currentGame)
-
-
-
-
-
-   
+        drawBoard(currentGame)   
